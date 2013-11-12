@@ -4,6 +4,10 @@ import os
 import cPickle
 import numpy as np
 
+"""
+    Script to extract labels only for CIFAR.
+"""
+
 def unpickle_labels(file_name):
     fo = open(file_name, 'rb')
     dictionary = cPickle.load(fo)
