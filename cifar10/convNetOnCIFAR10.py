@@ -120,7 +120,8 @@ def convolutional_nets_on_CIFAR10():
     #optimizer = dropout_optimizer_conf(steprate_0=1, n_repeats=1)
     m = ConvNet(3072, [96, 192, 192], [500], 10, ['tanh', 'tanh', 'tanh'], ['tanh'], out_transfer='softmax',
                 loss='nce', image_height=32, image_width=32, n_image_channel=3, optimizer=optimizer,
-                batch_size=batch_size, max_iter=max_iter,filter_shapes=[[8, 8],[8, 8],[5, 5]])
+                batch_size=batch_size, max_iter=max_iter, pool_shapes=[[4, 4], [4, 4], [2, 2]],
+                filter_shapes=[[8, 8], [8, 8], [5, 5]], pool_strides=[[2, 2], [2, 2], [2, 2]])
 
     m.parameters.data[...] = np.random.normal(0, 1, m.parameters.data.shape)
     m.init_conv_weights()
