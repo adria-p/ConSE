@@ -1,7 +1,7 @@
 import cPickle
 import gzip
 import time
-
+import theano
 import numpy as np
 import theano.tensor as T
 
@@ -12,7 +12,7 @@ from brummlearn.convnet import ConvNet
 from brummlearn.data import one_hot
 
 import warnings
-
+theano.config.exception_verbosity = 'high'
 
 """
     Original in Maxout paper:
@@ -88,27 +88,27 @@ import warnings
 def convolutional_nets_on_CIFAR10():
 
     #### load data ####
-    #train_file = 'pylearn2_gcn_whitened/train.pkl'
-    #test_file = 'pylearn2_gcn_whitened/test.pkl'
+    train_file = 'pylearn2_gcn_whitened/train.pkl'
+    test_file = 'pylearn2_gcn_whitened/test.pkl'
     # Load data.
 
-    #f = open(train_file,'rb')
-    #train_set = cPickle.load(f)
-    #f = open(test_file)
-    #test_set = cPickle.load(f)
+    f = open(train_file,'rb')
+    train_set = cPickle.load(f)
+    f = open(test_file)
+    test_set = cPickle.load(f)
 
-    #X, Z = train_set.get_data()
-    #VX, VZ = test_set.get_data()
+    X, Z = train_set.get_data()
+    VX, VZ = test_set.get_data()
 
-    #Z = one_hot(Z, 10)
-    #VZ = one_hot(VZ, 10)
+    Z = one_hot(Z, 10)
+    VZ = one_hot(VZ, 10)
 
     #### initialize model ####
 
-    max_passes = 700
+    max_passes = 50
     batch_size = 128
-    max_iter = 712#max_passes * X.shape[0] / batch_size
-    n_report = 123#X.shape[0] / batch_size
+    max_iter = max_passes * X.shape[0] / batch_size
+    n_report = X.shape[0] / batch_size
 
     stop = climin.stops.any_([
         climin.stops.after_n_iterations(max_iter),
