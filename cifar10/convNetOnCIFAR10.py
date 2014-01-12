@@ -1,5 +1,4 @@
 import cPickle
-import gzip
 import time
 import theano
 import numpy as np
@@ -124,19 +123,10 @@ def convolutional_nets_on_CIFAR10():
                 filter_shapes=[[8, 8], [8, 8], [5, 5]], pool_strides=[[2, 2], [2, 2], [2, 2]],
                 padding=[4,3,3])
 
-    m.parameters.data[...] = np.random.normal(0, 1, m.parameters.data.shape)
-    m.init_conv_weights()
-
-    weight_decay = ((m.parameters.in_to_hidden**2).sum()
-                    + (m.parameters.hidden_conv_to_hidden_conv_0**2).sum()
-                    + (m.parameters.hidden_conv_to_hidden_conv_1**2).sum()
-                    + (m.parameters.hidden_conv_to_hidden_full**2).sum()
-                    + (m.parameters.hidden_to_out**2).sum())
-
-    weight_decay /= m.exprs['inpt'].shape[0]
-    m.exprs['true_loss'] = m.exprs['loss']
-    c_wd = 0.001
-    m.exprs['loss'] += c_wd * weight_decay
+    m.parameters.data[...] = np.random.normal(0, 0.1, m.parameters.data.shape)
+    inits = m.init_conv_weights()
+    for name, val in inits:
+        m.parameters[name] = val
 
     n_wrong = 1 - T.eq(T.argmax(m.exprs['output'], axis=1), T.argmax(m.exprs['target'], axis=1)).mean()
     f_n_wrong = m.function(['inpt', 'target'], n_wrong)
@@ -155,7 +145,7 @@ def convolutional_nets_on_CIFAR10():
     print header
     print '-' * len(header)
 
-    f_loss = m.function(['inpt', 'target'], ['true_loss', 'loss'])
+    f_loss = m.function(['inpt', 'target'], ['loss'])
 
     for i, info in enumerate(m.powerfit((X, Z), (VX, VZ), stop, pause)):
         if info['n_iter'] % n_report != 0:
