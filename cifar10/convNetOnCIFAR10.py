@@ -102,12 +102,18 @@ def convolutional_nets_on_CIFAR10():
     Z = one_hot(Z, 10)
     VZ = one_hot(VZ, 10)
 
+    X = X[:128*200]
+    Z = Z[:128*200]
+    VX = VX[:256]
+    VZ = VZ[:256]
+
+
     #### initialize model ####
 
     max_passes = 50
     batch_size = 128
     max_iter = max_passes * X.shape[0] / batch_size
-    n_report = X.shape[0] / batch_size
+    n_report = batch_size * 50
 
     stop = climin.stops.any_([
         climin.stops.after_n_iterations(max_iter),
@@ -139,7 +145,7 @@ def convolutional_nets_on_CIFAR10():
 
     start = time.time()
     # Set up a nice printout.
-    keys = '#', 'loss', 'val loss', 'seconds', 'wd', 'train emp', 'val emp'
+    keys = '#', 'val loss', 'seconds', 'val emp'
     max_len = max(len(i) for i in keys)
     header = '\t'.join(i for i in keys)
     print header
@@ -151,19 +157,16 @@ def convolutional_nets_on_CIFAR10():
         if info['n_iter'] % n_report != 0:
             continue
         passed = time.time() - start
-        losses.append(info['loss'])
         v_losses.append(info['val_loss'])
 
         #img = tile_raster_images(fe.parameters['in_to_hidden'].T, image_dims, feature_dims, (1, 1))
-        #save_and_display(img, 'filters-%i.png' % i)
-        f_wrong = m.apply_minibatches_function(f_n_wrong, X, Z)*X.shape[0]
+        #save_and_display(img, 'filters-%i.png' % i
         f_wrong_val = m.apply_minibatches_function(f_n_wrong, VX, VZ)*VX.shape[0]
         info.update({
             'time': passed,
-            'train_emp': f_wrong,
             'val_emp': f_wrong_val
         })
-        row = '%(n_iter)i\t%(loss)g\t%(val_loss)g\t%(time)g\t%(train_emp)g\t%(val_emp)g' % info
+        row = '%(n_iter)i\t%(val_loss)g\t%(time)g\t%(val_emp)g' % info
         print row
 if __name__ == "__main__":
     with warnings.catch_warnings():
