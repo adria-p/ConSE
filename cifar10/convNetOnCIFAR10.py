@@ -7,82 +7,12 @@ import theano.tensor as T
 import climin.stops
 import climin.initialize
 
-from brummlearn.convnet import ConvNet
-from brummlearn.data import one_hot
+from breze.learn.cnn import Cnn
+from breze.learn.data import one_hot
 
 import warnings
 theano.config.exception_verbosity = 'high'
 
-"""
-    Original in Maxout paper:
-    batch_size: 128,
-        layers: [
-                 !obj:pylearn2.models.maxout.MaxoutConvC01B {
-                     layer_name: 'h0',
-                     pad: 4,
-                     tied_b: 1,
-                     W_lr_scale: .05,
-                     b_lr_scale: .05,
-                     num_channels: 96,
-                     num_pieces: 2,
-                     kernel_shape: [8, 8],
-                     pool_shape: [4, 4],
-                     pool_stride: [2, 2],
-                     irange: .005,
-                     max_kernel_norm: .9,
-                     partial_sum: 33,
-                 },
-                 !obj:pylearn2.models.maxout.MaxoutConvC01B {
-                     layer_name: 'h1',
-                     pad: 3,
-                     tied_b: 1,
-                     W_lr_scale: .05,
-                     b_lr_scale: .05,
-                     num_channels: 192,
-                     num_pieces: 2,
-                     kernel_shape: [8, 8],
-                     pool_shape: [4, 4],
-                     pool_stride: [2, 2],
-                     irange: .005,
-                     max_kernel_norm: 1.9365,
-                     partial_sum: 15,
-                 },
-                 !obj:pylearn2.models.maxout.MaxoutConvC01B {
-                     pad: 3,
-                     layer_name: 'h2',
-                     tied_b: 1,
-                     W_lr_scale: .05,
-                     b_lr_scale: .05,
-                     num_channels: 192,
-                     num_pieces: 2,
-                     kernel_shape: [5, 5],
-                     pool_shape: [2, 2],
-                     pool_stride: [2, 2],
-                     irange: .005,
-                     max_kernel_norm: 1.9365,
-                 },
-                 !obj:pylearn2.models.maxout.Maxout {
-                    layer_name: 'h3',
-                    irange: .005,
-                    num_units: 500,
-                    num_pieces: 5,
-                    max_col_norm: 1.9
-                 },
-                 !obj:pylearn2.models.mlp.Softmax {
-                     max_col_norm: 1.9365,
-                     layer_name: 'y',
-                     n_classes: 10,
-                     irange: .005
-                 }
-                ],
-        input_space: !obj:pylearn2.space.Conv2DSpace {
-            shape: &window_shape [32, 32],
-            num_channels: 3,
-            axes: ['c', 0, 1, 'b'],
-        }
-    },
-
-"""
 
 def convolutional_nets_on_CIFAR10():
 
@@ -123,13 +53,13 @@ def convolutional_nets_on_CIFAR10():
 
     optimizer = 'gd', {'steprate': 0.1}
     #optimizer = dropout_optimizer_conf(steprate_0=1, n_repeats=1)
-    m = ConvNet(3072, [96, 192, 192], [500], 10, ['tanh', 'tanh', 'tanh'], ['tanh'], out_transfer='softmax',
+    m = Cnn(3072, [96, 192, 192], [500], 10, ['tanh', 'tanh', 'tanh'], ['tanh'], out_transfer='softmax',
                 loss='nce', image_height=32, image_width=32, n_image_channel=3, optimizer=optimizer,
                 batch_size=batch_size, max_iter=max_iter, pool_shapes=[[4, 4], [4, 4], [2, 2]],
                 filter_shapes=[[8, 8], [8, 8], [5, 5]], pool_strides=[[2, 2], [2, 2], [2, 2]],
                 padding=[4,3,3])
 
-    m.parameters.data[...] = np.random.normal(0, 0.1, m.parameters.data.shape)
+    m.parameters.data[...] = np.random.normal(0, 0.01, m.parameters.data.shape)
     inits = m.init_conv_weights()
     for name, val in inits:
         m.parameters[name] = val
