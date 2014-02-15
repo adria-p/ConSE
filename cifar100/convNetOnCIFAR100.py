@@ -54,19 +54,24 @@ class Cifar100Worker:
 
         return np.array(to_return_X), np.array(to_return_Z)
 
-    def prepare_data(self, data_to_prepare):
-        num_batches = len(data_to_prepare)/self.batch_size
-        data_to_prepare[:] = data_to_prepare[:num_batches*self.batch_size]
-        data_to_prepare[:] = np.array(data_to_prepare, dtype=np.float32)
-
-    def run(self):
+    def prepare_data(self):
         self.data[1] = one_hot(self.data[1], np.max(self.data[1])+1)
         self.data[3] = one_hot(self.data[3], np.max(self.data[3])+1)
-        for element in self.data:
-            self.prepare_data(element)
+        num_batches = len(self.data[0])/self.batch_size
+        self.data[0] = self.data[0][:num_batches*self.batch_size]
+        self.data[0] = np.array(self.data[0], dtype=np.float32)
+        self.data[1] = self.data[1][:num_batches*self.batch_size]
+        self.data[1] = np.array(self.data[1], dtype=np.float32)
+        self.data[2] = self.data[2][:num_batches*self.batch_size]
+        self.data[2] = np.array(self.data[2], dtype=np.float32)
+        self.data[3] = self.data[3][:num_batches*self.batch_size]
+        self.data[3] = np.array(self.data[3], dtype=np.float32)
+
+    def run(self):
+        self.prepare_data()
         X, Z, VX, VZ = self.data
         max_iter = self.max_passes * X.shape[0] / self.batch_size
-        n_report = X.shape[0] / (5*self.batch_size)
+        n_report = X.shape[0] / self.batch_size
         stop = climin.stops.any_([
             climin.stops.after_n_iterations(max_iter),
             ])
