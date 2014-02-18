@@ -10,7 +10,7 @@ import climin.initialize
 from breze.learn.cnn import Cnn
 from breze.learn.data import one_hot
 
-theano.config.exception_verbosity = 'high'
+#theano.config.exception_verbosity = 'high'
 
 
 class Cifar100Worker:
@@ -39,19 +39,19 @@ class Cifar100Worker:
                 to_return_X.append(x)
                 to_return_Z.append(z)
                 to_delete.append(i)
-        self.data[0] = np.delete(self.data[0], to_delete)
-        self.data[1] = np.delete(self.data[1], to_delete)
+        self.data[0] = np.delete(self.data[0], to_delete, axis=0)
+        self.data[1] = np.delete(self.data[1], to_delete, axis=0)
+	to_delete = []
         for i, (x, z) in enumerate(zip(self.data[2], self.data[3])):
             if z in indices_to_remove:
                 to_return_X.append(x)
                 to_return_Z.append(z)
                 to_delete.append(i)
-        self.data[2] = np.delete(self.data[2], to_delete)
-        self.data[3] = np.delete(self.data[3], to_delete)
+        self.data[2] = np.delete(self.data[2], to_delete, axis=0)
+        self.data[3] = np.delete(self.data[3], to_delete, axis=0)
         for i in np.sort(indices_to_remove)[::-1]:
             self.data[1][self.data[1] >= i] -= 1
             self.data[3][self.data[3] >= i] -= 1
-
         return np.array(to_return_X), np.array(to_return_Z)
 
     def prepare_data(self):
@@ -62,6 +62,7 @@ class Cifar100Worker:
         self.data[0] = np.array(self.data[0], dtype=np.float32)
         self.data[1] = self.data[1][:num_batches*self.batch_size]
         self.data[1] = np.array(self.data[1], dtype=np.float32)
+	num_batches = len(self.data[2])/self.batch_size
         self.data[2] = self.data[2][:num_batches*self.batch_size]
         self.data[2] = np.array(self.data[2], dtype=np.float32)
         self.data[3] = self.data[3][:num_batches*self.batch_size]
@@ -70,6 +71,7 @@ class Cifar100Worker:
     def run(self):
         self.prepare_data()
         X, Z, VX, VZ = self.data
+	del(self.data)
         max_iter = self.max_passes * X.shape[0] / self.batch_size
         n_report = X.shape[0] / self.batch_size
         stop = climin.stops.any_([
@@ -78,7 +80,11 @@ class Cifar100Worker:
 
         pause = climin.stops.modulo_n_iterations(n_report)
         optimizer = 'gd', {'steprate': 0.01, 'momentum': 0.9}
-        m = Cnn(3072, [64, 64, 64], [256], 100, #256 best
+        print "Zshape", Z.shape
+	print "Xshape", X.shape
+	print "VXshape", VX.shape
+	print "VZshape", VZ.shape
+	m = Cnn(3072, [64, 64, 64], [256], Z.shape[1],
                 ['rectifier', 'rectifier', 'rectifier'], ['rectifier'],
                 out_transfer='softmax', loss='nce', image_height=32,
                 image_width=32, n_image_channel=3, optimizer=optimizer,
