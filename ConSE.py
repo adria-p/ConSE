@@ -13,22 +13,19 @@ def unpickle(file):
     fo.close()
     return dict
 
-def get_top_n(vector, n):
+def get_top_n(vector, n, gt):
     dists = np.dot(text_model.syn0norm, vector)
-    best = np.argsort(dists)[::-1][:n]
-    return [text_model.index2word[sim] for sim in best]
+    best = np.argsort(dists)[::-1]
+    for i, w in enumerate(best):
+        if text_model.index2word[w] == gt:
+            return i
+    raise RuntimeError('It should be there!')
 
 def get_word(idx):
     word = labels[idx]
     if word in word_transf:
         word = word_transf[word]
     return word
-
-def compare_words(word_list, target):
-    if target in word_list:
-        print "Found!"
-        return True
-    return False
 
 def load_model(filename, n_outputs):
     m = Cnn(3072, [64, 64, 64], [256], n_outputs,
@@ -78,6 +75,8 @@ train_file = 'cifar100/pylearn2_gcn_whitened/train.pkl'
 test_file = 'cifar100/pylearn2_gcn_whitened/test.pkl'
 
 rng = np.random.RandomState(seed)
+res = 0.0
+pos = 0.0
 for i in xrange(repetitions):
     # Contains indices to remove once the word "aquarium fish" is already
     # removed
@@ -88,10 +87,10 @@ for i in xrange(repetitions):
     print "Words removed"
     to_print = []
     for j in indices_to_remove:
-	if j >= word_to_directly_exclude:
-		to_print.append(get_word(j+1))
-	else:
-		to_print.append(get_word(j))
+        if j >= word_to_directly_exclude:
+            to_print.append(get_word(j+1))
+        else:
+            to_print.append(get_word(j))
     print to_print
     print len(to_print)
     # Contains all indices not removed, except "aquarium fish"
@@ -124,24 +123,31 @@ for i in xrange(repetitions):
     Z[Z >= word_to_directly_exclude] += 1
     
     if os.path.isfile("model-%i.npy" % i):
-	m = load_model("model-%i.npy" % i, 99-random_words)
+        m = load_model("model-%i.npy" % i, 99-random_words)
     else:
-    	m = c.run()
+        m = c.run()
     predictions = m.predict(X)
     res = 0.0
+    positions = 0.0
     print "Predicting..."
     for j, (pred, gt) in enumerate(zip(predictions, Z)):
-	print pred.shape, transformation_matrix.shape
-	if (j % 1000) == 0:
-	    print "%i..." % j
+        if (j % 1000) == 0:
+            print "%i..." % j
         prediction_word_vector = np.dot(pred, transformation_matrix)
         prediction_word_vector /= np.sum(pred)
         prediction_word_vector /= np.linalg.norm(prediction_word_vector)
-        top_n_words = get_top_n(prediction_word_vector, top_words)
+        position = get_top_n(prediction_word_vector, top_words, get_word(gt))
         #print get_word(gt), top_n_words
-        if compare_words(top_n_words, get_word(gt)):
+        if position < top_words:
             res += 1.0
-    print "Result for repetition %i with top %i words: %f" % (i, top_words, res/len(predictions))
+        positions += position
 
+    average_res = res/len(predictions)
+    average_pos = positions/len(predictions)
+    pos += average_pos
+    res += average_res
+    print "Result for repetition %i with top %i words: %f accuracy, " \
+          "%f average position" % (i, top_words, average_res, average_pos)
 
-
+print "Overal results: %f accuracy, %f average position" % (res/repetitions,
+                                                            pos/repetitions)
